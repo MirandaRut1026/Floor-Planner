@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  base: '/Floor-Planner/',
   plugins: [
     react(),
     VitePWA({
@@ -17,7 +16,7 @@ export default defineConfig({
         background_color: '#F4EFE6',
         display: 'standalone',
         orientation: 'any',
-        start_url: '/Floor-Planner/',
+        start_url: '/',
         icons: [
           {
             src: 'pwa-192x192.png',
