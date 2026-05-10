@@ -180,9 +180,6 @@ export default function FloorPlanner() {
   const [customItemOpen, setCustomItemOpen] = useState(false);
 
   const canvasRef = useRef(null);
-  const dragState = useRef(null);
-  const panState = useRef(null);
-  const dotDragState = useRef(null);
   const nextId = useRef(1);
   const fileInputRef = useRef(null);
   const pixelsPerInchRef = useRef(DEFAULT_PPI);
@@ -279,6 +276,19 @@ export default function FloorPlanner() {
     return () => canvas.removeEventListener('wheel', onWheel);
   }, []);
 
+  // Prevent iOS Safari from scrolling/bouncing the page while interacting with the canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const prevent = (e) => e.preventDefault();
+    canvas.addEventListener('touchmove', prevent, { passive: false });
+    canvas.addEventListener('touchstart', prevent, { passive: false });
+    return () => {
+      canvas.removeEventListener('touchmove', prevent);
+      canvas.removeEventListener('touchstart', prevent);
+    };
+  }, []);
+
   // ───── Coordinate helpers ─────
   const screenToWorld = useCallback((screenX, screenY) => {
     const rect = canvasRef.current.getBoundingClientRect();
@@ -361,25 +371,46 @@ export default function FloorPlanner() {
   };
 
   // ───── Pointer handlers ─────
+  // Uses window-level listeners so events are never lost, regardless of where
+  // the pointer roams — this is what makes pan/drag reliable on iOS Safari.
+
+  const attachWindowListeners = (onMove, onUp) => {
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  };
+
+  const detachWindowListeners = (onMove, onUp) => {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+  };
+
   const onItemPointerDown = (e, id) => {
     if (calibrationMode) return;
     e.stopPropagation();
+    e.preventDefault();
     setSelectedId(id);
     const item = itemsRef.current.find((f) => f.id === id);
     if (!item) return;
     const w = screenToWorld(e.clientX, e.clientY);
-    dragState.current = {
-      id,
-      offsetX: w.x - item.x,
-      offsetY: w.y - item.y,
-      pointerId: e.pointerId,
-      moved: false,
+    const offsetX = w.x - item.x;
+    const offsetY = w.y - item.y;
+    const pid = e.pointerId;
+
+    const onMove = (ev) => {
+      if (ev.pointerId !== pid) return;
+      const wPos = screenToWorld(ev.clientX, ev.clientY);
+      const snapped = snapPos(wPos.x - offsetX, wPos.y - offsetY);
+      setItems((prev) => prev.map((f) => (f.id === id ? { ...f, x: snapped.x, y: snapped.y } : f)));
     };
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+    const onUp = () => detachWindowListeners(onMove, onUp);
+    attachWindowListeners(onMove, onUp);
   };
 
   const onCanvasPointerDown = (e) => {
     if (e.target !== e.currentTarget) return;
+    e.preventDefault();
 
     if (calibrationMode) {
       const rect = canvasRef.current.getBoundingClientRect();
@@ -388,8 +419,25 @@ export default function FloorPlanner() {
       for (let i = 0; i < calibrationPoints.length; i++) {
         const d = calibrationPoints[i];
         if (Math.hypot(d.x - p.x, d.y - p.y) <= HIT) {
-          dotDragState.current = { idx: i, pointerId: e.pointerId };
-          try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+          const idx = i;
+          const pid = e.pointerId;
+          // capture snapStraight at drag start via ref so it's always current
+          const onMove = (ev) => {
+            if (ev.pointerId !== pid) return;
+            const rr = canvasRef.current.getBoundingClientRect();
+            let pt = { x: ev.clientX - rr.left, y: ev.clientY - rr.top };
+            setCalibrationPoints((prev) => {
+              const other = prev[1 - idx];
+              if (snapStraight && other) {
+                const dx = Math.abs(pt.x - other.x);
+                const dy = Math.abs(pt.y - other.y);
+                pt = dx < dy ? { x: other.x, y: pt.y } : { x: pt.x, y: other.y };
+              }
+              return prev.map((dd, ii) => (ii === idx ? pt : dd));
+            });
+          };
+          const onUp = () => detachWindowListeners(onMove, onUp);
+          attachWindowListeners(onMove, onUp);
           return;
         }
       }
@@ -397,69 +445,22 @@ export default function FloorPlanner() {
       return;
     }
 
-    // Start pan
-    setSelectedId(null);
-    panState.current = {
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startVX: viewportRef.current.x,
-      startVY: viewportRef.current.y,
-      pointerId: e.pointerId,
-      moved: false,
-    };
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
-  };
-
-  const onPointerMove = (e) => {
-    // Item drag
-    if (dragState.current && dragState.current.pointerId === e.pointerId) {
-      dragState.current.moved = true;
-      const w = screenToWorld(e.clientX, e.clientY);
-      let nx = w.x - dragState.current.offsetX;
-      let ny = w.y - dragState.current.offsetY;
-      const snapped = snapPos(nx, ny);
-      nx = snapped.x; ny = snapped.y;
-      const id = dragState.current.id;
-      setItems((prev) => prev.map((f) => (f.id === id ? { ...f, x: nx, y: ny } : f)));
-      return;
-    }
     // Pan
-    if (panState.current && panState.current.pointerId === e.pointerId) {
-      panState.current.moved = true;
-      const dx = e.clientX - panState.current.startClientX;
-      const dy = e.clientY - panState.current.startClientY;
-      setViewport((prev) => ({ ...prev, x: panState.current.startVX + dx, y: panState.current.startVY + dy }));
-      return;
-    }
-    // Calibration dot drag
-    if (dotDragState.current && dotDragState.current.pointerId === e.pointerId) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      let p = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-      const idx = dotDragState.current.idx;
-      const other = calibrationPoints[1 - idx];
-      if (snapStraight && other) {
-        const dx = Math.abs(p.x - other.x);
-        const dy = Math.abs(p.y - other.y);
-        if (dx < dy) p = { x: other.x, y: p.y };
-        else p = { x: p.x, y: other.y };
-      }
-      setCalibrationPoints((prev) => prev.map((d, i) => (i === idx ? p : d)));
-    }
-  };
+    setSelectedId(null);
+    const startClientX = e.clientX;
+    const startClientY = e.clientY;
+    const startVX = viewportRef.current.x;
+    const startVY = viewportRef.current.y;
+    const pid = e.pointerId;
 
-  const onPointerUp = (e) => {
-    if (dragState.current && dragState.current.pointerId === e.pointerId) {
-      try { e.currentTarget.releasePointerCapture(dragState.current.pointerId); } catch {}
-      dragState.current = null;
-    }
-    if (panState.current && panState.current.pointerId === e.pointerId) {
-      try { e.currentTarget.releasePointerCapture(panState.current.pointerId); } catch {}
-      panState.current = null;
-    }
-    if (dotDragState.current && dotDragState.current.pointerId === e.pointerId) {
-      try { e.currentTarget.releasePointerCapture(dotDragState.current.pointerId); } catch {}
-      dotDragState.current = null;
-    }
+    const onMove = (ev) => {
+      if (ev.pointerId !== pid) return;
+      const dx = ev.clientX - startClientX;
+      const dy = ev.clientY - startClientY;
+      setViewport((prev) => ({ ...prev, x: startVX + dx, y: startVY + dy }));
+    };
+    const onUp = () => detachWindowListeners(onMove, onUp);
+    attachWindowListeners(onMove, onUp);
   };
 
   // ───── Calibration ─────
@@ -688,12 +689,12 @@ export default function FloorPlanner() {
   return (
     <div
       className="w-full flex flex-col overflow-hidden relative"
-      style={{ height: '100dvh', background: PAPER, color: INK, fontFamily: "'Geist', -apple-system, BlinkMacSystemFont, sans-serif", WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+      style={{ height: '100dvh', background: PAPER, color: INK, fontFamily: "'Geist', -apple-system, BlinkMacSystemFont, sans-serif", WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'none', overscrollBehavior: 'none' }}
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html, body, #root { overscroll-behavior: none; }
+        html, body, #root { overscroll-behavior: none; overflow: hidden; touch-action: none; height: 100%; }
         .font-display { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; }
         .font-mono { font-family: 'Geist Mono', ui-monospace, monospace; }
         .no-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -882,8 +883,6 @@ export default function FloorPlanner() {
           <div
             ref={canvasRef}
             onPointerDown={onCanvasPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
             className="flex-1 relative overflow-hidden"
             style={{
               background: CANVAS_BG,
