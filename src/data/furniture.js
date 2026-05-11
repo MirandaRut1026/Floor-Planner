@@ -1,0 +1,78 @@
+export const PX_PER_FOOT = 20;
+
+export const FURNITURE = {
+  'Living Room': [
+    { name: 'Sofa',           w: 7,   h: 3,   color: '#8B7355' },
+    { name: 'Loveseat',       w: 5,   h: 3,   color: '#8B7355' },
+    { name: 'Coffee Table',   w: 4,   h: 2,   color: '#DEB887' },
+    { name: 'TV Stand',       w: 5,   h: 1.5, color: '#5C4033' },
+    { name: 'Armchair',       w: 3,   h: 3,   color: '#9B8260' },
+    { name: 'Side Table',     w: 2,   h: 2,   color: '#DEB887' },
+    { name: 'Bookshelf',      w: 4,   h: 1,   color: '#8B6914' },
+    { name: 'Floor Lamp',     w: 1,   h: 1,   color: '#F5DEB3' },
+    { name: 'Area Rug 5×8',   w: 8,   h: 5,   color: '#CC8888' },
+    { name: 'Ottoman',        w: 3,   h: 3,   color: '#A08060' },
+  ],
+  'Bedroom': [
+    { name: 'King Bed',       w: 6.3, h: 6.7, color: '#4A90D9' },
+    { name: 'Queen Bed',      w: 5,   h: 6.7, color: '#4A90D9' },
+    { name: 'Full Bed',       w: 4.5, h: 6.3, color: '#5AA0E9' },
+    { name: 'Twin Bed',       w: 3.2, h: 6.3, color: '#5AA0E9' },
+    { name: 'Dresser',        w: 4,   h: 1.5, color: '#8B6914' },
+    { name: 'Nightstand',     w: 2,   h: 2,   color: '#8B6914' },
+    { name: 'Wardrobe',       w: 5,   h: 2,   color: '#6B4423' },
+    { name: 'Desk',           w: 4,   h: 2,   color: '#DEB887' },
+    { name: 'Bench',          w: 4,   h: 1.5, color: '#A08060' },
+  ],
+  'Dining': [
+    { name: 'Table 4-person', w: 3,   h: 5,   color: '#A0522D' },
+    { name: 'Table 6-person', w: 3,   h: 7,   color: '#A0522D' },
+    { name: 'Table 8-person', w: 3.5, h: 9,   color: '#A0522D' },
+    { name: 'Dining Chair',   w: 1.5, h: 1.5, color: '#8B7355' },
+    { name: 'Buffet',         w: 5,   h: 1.5, color: '#6B4423' },
+    { name: 'China Cabinet',  w: 4,   h: 1.5, color: '#6B4423' },
+  ],
+  'Kitchen': [
+    { name: 'Refrigerator',   w: 2.5, h: 2.5, color: '#C0C0C0' },
+    { name: 'Range/Stove',    w: 2.5, h: 2.5, color: '#808080' },
+    { name: 'Dishwasher',     w: 2,   h: 2,   color: '#A9A9A9' },
+    { name: 'Kitchen Island', w: 4,   h: 2.5, color: '#F5F5DC' },
+    { name: 'Sink',           w: 2,   h: 1.5, color: '#B8D4E8' },
+    { name: 'Microwave',      w: 2,   h: 1.5, color: '#808080' },
+  ],
+  'Bath': [
+    { name: 'Toilet',         w: 1.5, h: 2.5, color: '#FFFFF0' },
+    { name: 'Bathtub',        w: 2.5, h: 5,   color: '#E0F0FF' },
+    { name: 'Shower 3×3',     w: 3,   h: 3,   color: '#B8D4E8' },
+    { name: 'Shower 4×4',     w: 4,   h: 4,   color: '#B8D4E8' },
+    { name: 'Single Vanity',  w: 2,   h: 1.5, color: '#F5F5F5' },
+    { name: 'Double Vanity',  w: 4,   h: 1.5, color: '#F5F5F5' },
+  ],
+  'Office': [
+    { name: 'Desk',           w: 5,   h: 2.5, color: '#DEB887' },
+    { name: 'L-Shape Desk',   w: 5,   h: 5,   color: '#DEB887' },
+    { name: 'Office Chair',   w: 2,   h: 2,   color: '#2F4F4F' },
+    { name: 'Filing Cabinet', w: 1.5, h: 2,   color: '#808080' },
+    { name: 'Bookshelf',      w: 3,   h: 1,   color: '#8B6914' },
+    { name: 'Printer',        w: 1.5, h: 1.5, color: '#696969' },
+  ],
+  'Other': [
+    { name: 'Washer',         w: 2,   h: 2,   color: '#E0E0E0' },
+    { name: 'Dryer',          w: 2,   h: 2,   color: '#E0E0E0' },
+    { name: 'Water Heater',   w: 1.5, h: 1.5, color: '#A9A9A9' },
+    { name: 'Stairs',         w: 10,  h: 3.5, color: '#C8C8C8' },
+    { name: 'HVAC Unit',      w: 2,   h: 2,   color: '#B0C4DE' },
+    { name: 'Fireplace',      w: 5,   h: 1.5, color: '#8B4513' },
+    { name: 'Piano (Grand)',   w: 5,   h: 4.5, color: '#1a1a1a' },
+  ],
+};
+
+export const DOORS_WINDOWS = [
+  { name: "Door 2'8\"",      w: 2.67, h: 0.3, type: 'door',        color: '#DEB887' },
+  { name: "Door 3'",         w: 3,    h: 0.3, type: 'door',        color: '#DEB887' },
+  { name: "Double Door 6'",  w: 6,    h: 0.3, type: 'door',        color: '#DEB887' },
+  { name: "Window 3'",       w: 3,    h: 0.5, type: 'window',      color: '#87CEEB' },
+  { name: "Window 4'",       w: 4,    h: 0.5, type: 'window',      color: '#87CEEB' },
+  { name: "Window 6'",       w: 6,    h: 0.5, type: 'window',      color: '#87CEEB' },
+  { name: "Sliding Door 6'", w: 6,    h: 0.3, type: 'slidingdoor', color: '#87CEEB' },
+];
